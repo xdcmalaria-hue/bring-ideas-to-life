@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Hero } from './components/Hero';
 import { InputArea } from './components/InputArea';
 import { LivePreview } from './components/LivePreview';
@@ -185,10 +185,10 @@ const App: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setActiveCreation(null);
     setIsGenerating(false);
-  };
+  }, []);
 
   const handleSelectCreation = (creation: Creation) => {
     setActiveCreation(creation);
@@ -246,6 +246,51 @@ const App: React.FC = () => {
       setAuthMode('signup');
       setIsAuthOpen(true);
   };
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName);
+
+        // Escape: Close Modals or Preview
+        if (e.key === 'Escape') {
+            if (isAuthOpen) setIsAuthOpen(false);
+            else if (isPricingOpen) setIsPricingOpen(false);
+            else if (isFeedbackOpen) setIsFeedbackOpen(false);
+            else if (activeCreation) handleReset();
+            return;
+        }
+
+        // Global shortcuts that work even if NOT in input (or specific ones)
+        if (!isInput) {
+             // Alt + F: Feedback
+            if (e.altKey && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                setIsFeedbackOpen(prev => !prev);
+            }
+
+            // History Navigation (only when previewing)
+            if (activeCreation && history.length > 1) {
+                if (e.key === 'ArrowRight') {
+                    // Go to older (next in array)
+                    const currentIndex = history.findIndex(c => c.id === activeCreation.id);
+                    if (currentIndex < history.length - 1) {
+                        setActiveCreation(history[currentIndex + 1]);
+                    }
+                } else if (e.key === 'ArrowLeft') {
+                     // Go to newer (prev in array)
+                    const currentIndex = history.findIndex(c => c.id === activeCreation.id);
+                    if (currentIndex > 0) {
+                        setActiveCreation(history[currentIndex - 1]);
+                    }
+                }
+            }
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAuthOpen, isPricingOpen, isFeedbackOpen, activeCreation, handleReset, history]);
 
   const isFocused = !!activeCreation || isGenerating;
 
@@ -337,6 +382,7 @@ const App: React.FC = () => {
                 <button
                     onClick={() => setIsFeedbackOpen(true)}
                     className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors"
+                    title="Shortcut: Alt + F"
                 >
                     Feedback
                 </button>

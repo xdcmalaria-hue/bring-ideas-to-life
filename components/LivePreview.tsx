@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -96,6 +97,7 @@ const PdfRenderer = ({ dataUrl }: { dataUrl: string }) => {
 
 export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, isFocused, onReset }) => {
     const [showSplitView, setShowSplitView] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
 
     // Log simulation effect
@@ -141,7 +143,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
         }
     }, [creation]);
 
-    const handleExport = () => {
+    const handleExportJSON = () => {
         if (!creation) return;
         const dataStr = JSON.stringify(creation, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
@@ -153,6 +155,21 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        setShowExportMenu(false);
+    };
+
+    const handleExportHTML = () => {
+        if (!creation) return;
+        const blob = new Blob([creation.html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${creation.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setShowExportMenu(false);
     };
 
   return (
@@ -175,7 +192,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
                 <button 
                   onClick={onReset}
                   className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700 group-hover/controls:bg-red-500 hover:!bg-red-600 transition-colors flex items-center justify-center focus:outline-none"
-                  title="Close Preview"
+                  title="Close Preview (Esc)"
                 >
                   <XMarkIcon className="w-2 h-2 text-black opacity-0 group-hover/controls:opacity-100" />
                 </button>
@@ -206,13 +223,38 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
                         </button>
                     )}
 
-                    <button 
-                        onClick={handleExport}
-                        title="Export Artifact (JSON)"
-                        className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800"
-                    >
-                        <ArrowDownTrayIcon className="w-4 h-4" />
-                    </button>
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            title="Export Options"
+                            className={`text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 ${showExportMenu ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : ''}`}
+                        >
+                            <ArrowDownTrayIcon className="w-4 h-4" />
+                        </button>
+                        
+                        {/* Export Menu */}
+                        {showExportMenu && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)}></div>
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+                                    <button 
+                                        onClick={handleExportJSON}
+                                        className="w-full text-left px-4 py-2 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center border-b border-zinc-100 dark:border-zinc-800/50"
+                                    >
+                                        <span className="flex-1 font-medium">Export JSON</span>
+                                        <span className="text-zinc-400 uppercase text-[9px] bg-zinc-100 dark:bg-zinc-800 px-1 rounded">Data</span>
+                                    </button>
+                                    <button 
+                                        onClick={handleExportHTML}
+                                        className="w-full text-left px-4 py-2 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center"
+                                    >
+                                        <span className="flex-1 font-medium">Export HTML</span>
+                                        <span className="text-zinc-400 uppercase text-[9px] bg-zinc-100 dark:bg-zinc-800 px-1 rounded">Web</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
 
                     <button 
                         onClick={onReset}

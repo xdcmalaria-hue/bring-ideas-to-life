@@ -154,6 +154,16 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, onAnalyze, isG
       // We don't clear state here, App.tsx will handle the view transition
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+      // CMD/CTRL + Enter to generate
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+          e.preventDefault();
+          if (!isGenerating) {
+              handleGenerateClick();
+          }
+      }
+  };
+
   const handleAutoEnhance = async () => {
       if (!selectedFile || !onAnalyze) return;
       setIsAnalyzing(true);
@@ -246,12 +256,14 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, onAnalyze, isG
                                   ref={textareaRef}
                                   value={prompt}
                                   onChange={(e) => setPrompt(e.target.value)}
+                                  onKeyDown={handleKeyDown}
                                   placeholder="E.g., Turn this wireframe into a modern dashboard with dark mode. Use a blue and purple color scheme. Add a user profile chart in the top right..."
                                   className="w-full h-full p-4 bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-700 rounded-xl resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all text-sm md:text-base text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
                                   disabled={isGenerating}
                               />
-                              <div className="absolute bottom-3 right-3 text-xs text-zinc-400 pointer-events-none">
-                                  {prompt.length} chars
+                              <div className="absolute bottom-3 right-3 text-xs text-zinc-400 pointer-events-none flex items-center space-x-2">
+                                  <span>{prompt.length} chars</span>
+                                  <span className="hidden md:inline opacity-50 border border-zinc-500 rounded px-1 text-[10px]">⌘ + ↵</span>
                               </div>
                           </div>
 
@@ -266,6 +278,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, onAnalyze, isG
                               <button
                                   onClick={handleGenerateClick}
                                   disabled={isGenerating}
+                                  title="Press Cmd+Enter to generate"
                                   className={`
                                       group relative flex items-center space-x-2 px-6 py-2.5 rounded-full 
                                       bg-zinc-900 dark:bg-white text-white dark:text-black font-medium text-sm
