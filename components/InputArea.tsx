@@ -1,13 +1,14 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useCallback, useState, useEffect } from 'react';
-import { ArrowUpTrayIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { ArrowUpTrayIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon, XMarkIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
 interface InputAreaProps {
   onGenerate: (prompt: string, file?: File, fileData?: { base64: string, mimeType: string }) => void;
+  onAnalyze?: (base64: string, mimeType: string) => Promise<string>;
   isGenerating: boolean;
   disabled?: boolean;
 }
@@ -42,11 +43,24 @@ const CyclingText = () => {
     );
 };
 
-export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, isGenerating, disabled = false }) => {
+export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, onAnalyze, isGenerating, disabled = false }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isReading, setIsReading] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
+  
+  // New State for Form Mode
+  const [selectedFile, setSelectedFile] = useState<{file: File, base64: string, mimeType: string} | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-focus textarea when file is selected
+  useEffect(() => {
+    if (selectedFile && textareaRef.current) {
+        textareaRef.current.focus();
+    }
+  }, [selectedFile]);
 
   const handleFile = (file: File) => {
     setError(null);
@@ -84,7 +98,12 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, isGenerating, 
         // Remove data URL prefix to get raw base64
         const base64 = result.split(',')[1];
         
-        onGenerate("", file, { base64, mimeType: file.type });
+        // Instead of generating immediately, set the file state
+        setSelectedFile({
+            file,
+            base64,
+            mimeType: file.type
+        });
         setIsReading(false);
     };
 
@@ -123,6 +142,158 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, isGenerating, 
     setIsDragging(false);
   }, []);
 
+  const handleClear = () => {
+      setSelectedFile(null);
+      setPrompt("");
+      setError(null);
+  };
+
+  const handleGenerateClick = () => {
+      if (!selectedFile) return;
+      onGenerate(prompt, selectedFile.file, { base64: selectedFile.base64, mimeType: selectedFile.mimeType });
+      // We don't clear state here, App.tsx will handle the view transition
+  };
+
+  const handleAutoEnhance = async () => {
+      if (!selectedFile || !onAnalyze) return;
+      setIsAnalyzing(true);
+      try {
+          const suggestion = await onAnalyze(selectedFile.base64, selectedFile.mimeType);
+          if (suggestion) {
+              setPrompt(prev => {
+                  const separator = prev ? "\n\n" : "";
+                  return prev + separator + suggestion;
+              });
+              // Focus after update
+              if (textareaRef.current) {
+                  textareaRef.current.focus();
+                  textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+              }
+          }
+      } catch (e) {
+          setError("Failed to analyze image. Please try again.");
+      } finally {
+          setIsAnalyzing(false);
+      }
+  };
+
+  // If a file is selected, show the prompt input form
+  if (selectedFile) {
+      const isPdf = selectedFile.mimeType === 'application/pdf';
+      const previewUrl = `data:${selectedFile.mimeType};base64,${selectedFile.base64}`;
+
+      return (
+          <div className="w-full max-w-4xl mx-auto perspective-1000 animate-in fade-in zoom-in-95 duration-300">
+              <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+                  
+                  {/* Background decoration */}
+                  <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                  <div className="flex flex-col md:flex-row gap-8">
+                      {/* Left: Preview */}
+                      <div className="w-full md:w-1/3 flex-shrink-0">
+                          <div className="relative group aspect-[3/4] md:aspect-auto md:h-64 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center">
+                                {isPdf ? (
+                                    <div className="flex flex-col items-center text-zinc-400">
+                                        <DocumentIcon className="w-16 h-16 mb-2" />
+                                        <span className="text-xs font-mono uppercase">PDF Document</span>
+                                    </div>
+                                ) : (
+                                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
+                                )}
+                                
+                                {/* Overlay Controls */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button 
+                                        onClick={handleClear}
+                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors transform translate-y-4 group-hover:translate-y-0 duration-200 shadow-lg"
+                                    >
+                                        Remove File
+                                    </button>
+                                </div>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 px-1">
+                              <span className="truncate max-w-[200px]" title={selectedFile.file.name}>{selectedFile.file.name}</span>
+                              <span className="uppercase font-mono">{(selectedFile.file.size / 1024 / 1024).toFixed(1)} MB</span>
+                          </div>
+                      </div>
+
+                      {/* Right: Prompt Input */}
+                      <div className="flex-1 flex flex-col h-full">
+                          <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center space-x-2">
+                                  <SparklesIcon className="w-5 h-5 text-blue-500" />
+                                  <h3 className="font-semibold text-zinc-900 dark:text-white">Describe your vision</h3>
+                              </div>
+                              {onAnalyze && (
+                                  <button
+                                      onClick={handleAutoEnhance}
+                                      disabled={isAnalyzing || isGenerating}
+                                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                      {isAnalyzing ? (
+                                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                      ) : (
+                                          <SparklesIcon className="w-3 h-3" />
+                                      )}
+                                      <span>{isAnalyzing ? 'Analyzing...' : 'Reference AI'}</span>
+                                  </button>
+                              )}
+                          </div>
+                          
+                          <div className="relative flex-1 min-h-[160px]">
+                              <textarea
+                                  ref={textareaRef}
+                                  value={prompt}
+                                  onChange={(e) => setPrompt(e.target.value)}
+                                  placeholder="E.g., Turn this wireframe into a modern dashboard with dark mode. Use a blue and purple color scheme. Add a user profile chart in the top right..."
+                                  className="w-full h-full p-4 bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-700 rounded-xl resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all text-sm md:text-base text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
+                                  disabled={isGenerating}
+                              />
+                              <div className="absolute bottom-3 right-3 text-xs text-zinc-400 pointer-events-none">
+                                  {prompt.length} chars
+                              </div>
+                          </div>
+
+                          <div className="mt-6 flex items-center justify-end space-x-4">
+                              <button 
+                                  onClick={handleClear}
+                                  disabled={isGenerating}
+                                  className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                              >
+                                  Cancel
+                              </button>
+                              <button
+                                  onClick={handleGenerateClick}
+                                  disabled={isGenerating}
+                                  className={`
+                                      group relative flex items-center space-x-2 px-6 py-2.5 rounded-full 
+                                      bg-zinc-900 dark:bg-white text-white dark:text-black font-medium text-sm
+                                      hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105 active:scale-95
+                                      transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none
+                                  `}
+                              >
+                                  {isGenerating ? (
+                                      <>
+                                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                          <span>Creating...</span>
+                                      </>
+                                  ) : (
+                                      <>
+                                          <span>Bring to Life</span>
+                                          <PaperAirplaneIcon className="w-4 h-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                                      </>
+                                  )}
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      );
+  }
+
+  // Default Drop Zone
   return (
     <div className="w-full max-w-4xl mx-auto perspective-1000">
       <div 

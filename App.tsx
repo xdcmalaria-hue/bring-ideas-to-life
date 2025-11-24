@@ -11,7 +11,7 @@ import { FeedbackModal } from './components/FeedbackModal';
 import { PricingModal } from './components/PricingModal';
 import { AuthModal } from './components/AuthModal';
 import { ThemeToggle } from './components/ThemeToggle';
-import { bringToLife } from './services/gemini';
+import { bringToLife, analyzeImageForPrompt } from './services/gemini';
 import { ArrowUpTrayIcon, CubeTransparentIcon } from '@heroicons/react/24/solid';
 
 const App: React.FC = () => {
@@ -176,6 +176,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAnalyze = async (base64: string, mimeType: string): Promise<string> => {
+    try {
+        return await analyzeImageForPrompt(base64, mimeType);
+    } catch (e) {
+        console.error("Analysis failed", e);
+        return "";
+    }
+  };
+
   const handleReset = () => {
     setActiveCreation(null);
     setIsGenerating(false);
@@ -299,7 +308,12 @@ const App: React.FC = () => {
 
           {/* 2. Input Section */}
           <div className="w-full flex justify-center mb-8">
-              <InputArea onGenerate={handleGenerate} isGenerating={isGenerating} disabled={isFocused} />
+              <InputArea 
+                onGenerate={handleGenerate} 
+                onAnalyze={handleAnalyze}
+                isGenerating={isGenerating} 
+                disabled={isFocused} 
+              />
           </div>
 
         </div>

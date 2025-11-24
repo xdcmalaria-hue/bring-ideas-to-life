@@ -333,3 +333,30 @@ export async function bringToLife(prompt: string, fileBase64?: string, mimeType?
     throw error;
   }
 }
+
+/**
+ * Analyzes an image and suggests a prompt to build it.
+ */
+export async function analyzeImageForPrompt(fileBase64: string, mimeType: string): Promise<string> {
+    const parts = [
+        { text: "Analyze this image and describe the UI elements, layout, style, and content in detail to help build a frontend replica. Focus on visual design, colors, and structure. Keep it concise but descriptive. Do not include introductory text, just the description." },
+        {
+            inlineData: {
+                data: fileBase64,
+                mimeType: mimeType,
+            },
+        },
+    ];
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash', // Use flash for speed
+            contents: { parts },
+        });
+
+        return response.text || "";
+    } catch (error) {
+        console.error("Gemini Analysis Error:", error);
+        throw error;
+    }
+}
