@@ -19,7 +19,7 @@ Process the user's written prompt
 
 Merge BOTH into a final UI design
 
-Generate React + Tailwind code
+Generate code in the REQUESTED FRAMEWORK (React, Vue, or HTML)
 
 Output a complete HTML document consumable by an iframe
 
@@ -43,6 +43,8 @@ component interpretation hints
 function indications (e.g. “this is a login form”)
 
 themed redesign (“make it modern”, “use glassmorphism”, “dark mode”)
+
+FRAMEWORK PREFERENCE (React, Vue, or HTML/CSS/JS)
 
 You must obey the user prompt unless it conflicts with core generation rules.
 
@@ -70,13 +72,11 @@ styling
 
 But NOT allowed to override:
 
-output format
+output format (JSON structure)
 
 schema
 
 pipeline steps
-
-React-only restriction
 
 🔵 STEP 1 — VISUAL ANALYSIS (NO OUTPUT YET)
 
@@ -150,54 +150,36 @@ Combine user prompt + image understanding
 
 Prefer clean, minimal tree
 
-🔵 STEP 3 — CODE GENERATION (React + Tailwind JSX)
+🔵 STEP 3 — CODE GENERATION
 
+Generate the code based on the requested framework.
+
+If REACT (Default):
 Generate ONE React component named GeneratedUI.
+Use Tailwind CSS classes.
+Pure React JSX (no TS).
+No external libs (other than default Lucide/Heroicons if absolutely needed, but prefer standard elements).
 
-Rules:
+If VUE:
+Generate a Vue 3 component object (Options API or Composition API) that can be mounted.
+Use Tailwind CSS classes.
 
-✔ Required
+If HTML/CSS/JS:
+Generate standard HTML with Tailwind classes.
+Embed any necessary JS for interactivity inside <script> tags.
 
-Pure React JSX (no TS)
-
-Use Tailwind only
-
+Rules for ALL frameworks:
 Responsive
-
 Clean layout
-
 No comments
-
 No extra components
-
-No external libs
-
 No console logs
-
-✔ Apply user prompt
-
-Override colors if requested
-
-Apply styling changes
-
-Apply layout modifications
-
-Apply theme changes
-
-✔ Tailwind Guidelines
-
-Use flex or grid
-
-Use spacing scale from Step 2
-
-Use detected or overridden colors
-
-Use Tailwind typography classes
 
 🔵 STEP 4 — GENERATE OUTPUT HTML
 
-Embed the component inside working HTML:
+Embed the component inside working HTML appropriate for the framework.
 
+--- OPTION A: REACT SCAFFOLD ---
 <!DOCTYPE html>
 <html>
 <head>
@@ -209,24 +191,47 @@ Embed the component inside working HTML:
 </head>
 <body class="bg-white">
   <div id="root"></div>
-
   <script type="text/babel">
-    /* PLACE GENERATEDUI COMPONENT HERE */
-
-    ReactDOM.createRoot(document.getElementById('root'))
-      .render(<GeneratedUI />);
+    /* PLACE GENERATED REACT COMPONENT HERE */
+    ReactDOM.createRoot(document.getElementById('root')).render(<GeneratedUI />);
   </script>
 </body>
 </html>
 
+--- OPTION B: VUE SCAFFOLD ---
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-white">
+  <div id="app"></div>
+  <script>
+    const { createApp, ref, reactive, onMounted } = Vue;
+    /* PLACE GENERATED VUE APP DEFINITION HERE e.g. createApp({...}).mount('#app') */
+  </script>
+</body>
+</html>
+
+--- OPTION C: HTML SCAFFOLD ---
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+   <!-- PLACE GENERATED HTML BODY CONTENT HERE -->
+   <!-- PLACE GENERATED SCRIPT TAGS HERE -->
+</body>
+</html>
 
 Rules:
-
 MUST be a valid standalone HTML file
-
 MUST run inside <iframe srcDoc>
-
-MUST compile cleanly in Babel
+MUST compile cleanly
 
 🔵 STEP 5 — FINAL JSON RESPONSE
 
@@ -240,7 +245,8 @@ Return:
     "colors": {...},
     "font": "",
     "fromUserPrompt": "<USER PROMPT>",
-    "timestamp": "<ISO DATETIME>"
+    "timestamp": "<ISO DATETIME>",
+    "framework": "react | vue | html"
   }
 }
 
@@ -256,11 +262,7 @@ Never output explanations
 
 Only final JSON
 
-React + Tailwind only
-
 Always deterministic
-
-Always valid JSX
 
 Always valid HTML`;
 
@@ -271,7 +273,7 @@ export interface GenerationResult {
   metadata: any;
 }
 
-export async function bringToLife(prompt: string, fileBase64?: string, mimeType?: string): Promise<GenerationResult> {
+export async function bringToLife(prompt: string, fileBase64?: string, mimeType?: string, framework: string = 'react'): Promise<GenerationResult> {
   const parts: any[] = [];
   
   // Use the provided prompt if available, otherwise default logic
@@ -279,9 +281,12 @@ export async function bringToLife(prompt: string, fileBase64?: string, mimeType?
   
   if (!finalPrompt) {
       finalPrompt = fileBase64 
-        ? "Analyze this image/document and generate a production-ready React interface following the pipeline." 
+        ? "Analyze this image/document and generate a production-ready interface following the pipeline." 
         : "Create a demo app that shows off your capabilities.";
   }
+
+  // Explicitly add framework instruction to the user prompt
+  finalPrompt = `${finalPrompt}\n\nIMPORTANT: Generate the code using the ${framework.toUpperCase()} framework. Use the appropriate HTML scaffold for ${framework} provided in Step 4.`;
 
   parts.push({ text: finalPrompt });
 

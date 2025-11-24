@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { ArrowUpTrayIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon, XMarkIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon, XMarkIcon, DocumentIcon, PhotoIcon, CommandLineIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
+export type Framework = 'react' | 'vue' | 'html';
+
 interface InputAreaProps {
-  onGenerate: (prompt: string, file?: File, fileData?: { base64: string, mimeType: string }) => void;
+  onGenerate: (prompt: string, file?: File, fileData?: { base64: string, mimeType: string }, framework?: Framework) => void;
   onAnalyze?: (base64: string, mimeType: string) => Promise<string>;
   isGenerating: boolean;
   disabled?: boolean;
@@ -52,6 +54,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, onAnalyze, isG
   // New State for Form Mode
   const [selectedFile, setSelectedFile] = useState<{file: File, base64: string, mimeType: string} | null>(null);
   const [prompt, setPrompt] = useState("");
+  const [framework, setFramework] = useState<Framework>('react');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -146,11 +149,12 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, onAnalyze, isG
       setSelectedFile(null);
       setPrompt("");
       setError(null);
+      setFramework('react');
   };
 
   const handleGenerateClick = () => {
       if (!selectedFile) return;
-      onGenerate(prompt, selectedFile.file, { base64: selectedFile.base64, mimeType: selectedFile.mimeType });
+      onGenerate(prompt, selectedFile.file, { base64: selectedFile.base64, mimeType: selectedFile.mimeType }, framework);
       // We don't clear state here, App.tsx will handle the view transition
   };
 
@@ -235,20 +239,39 @@ export const InputArea: React.FC<InputAreaProps> = ({ onGenerate, onAnalyze, isG
                                   <SparklesIcon className="w-5 h-5 text-blue-500" />
                                   <h3 className="font-semibold text-zinc-900 dark:text-white">Describe your vision</h3>
                               </div>
-                              {onAnalyze && (
-                                  <button
-                                      onClick={handleAutoEnhance}
-                                      disabled={isAnalyzing || isGenerating}
-                                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                      {isAnalyzing ? (
-                                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                      ) : (
-                                          <SparklesIcon className="w-3 h-3" />
-                                      )}
-                                      <span>{isAnalyzing ? 'Analyzing...' : 'Reference AI'}</span>
-                                  </button>
-                              )}
+                              
+                              <div className="flex items-center space-x-3">
+                                  {/* Framework Selection */}
+                                  <div className="relative">
+                                      <select
+                                          value={framework}
+                                          onChange={(e) => setFramework(e.target.value as Framework)}
+                                          disabled={isGenerating}
+                                          className="appearance-none pl-8 pr-8 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium border border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer"
+                                      >
+                                          <option value="react">React</option>
+                                          <option value="vue">Vue</option>
+                                          <option value="html">HTML</option>
+                                      </select>
+                                      <CommandLineIcon className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                      <ChevronDownIcon className="w-3 h-3 text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                  </div>
+
+                                  {onAnalyze && (
+                                      <button
+                                          onClick={handleAutoEnhance}
+                                          disabled={isAnalyzing || isGenerating}
+                                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                          {isAnalyzing ? (
+                                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                          ) : (
+                                              <SparklesIcon className="w-3 h-3" />
+                                          )}
+                                          <span>{isAnalyzing ? 'Analyzing...' : 'Reference AI'}</span>
+                                      </button>
+                                  )}
+                              </div>
                           </div>
                           
                           <div className="relative flex-1 min-h-[160px]">

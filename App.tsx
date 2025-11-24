@@ -4,7 +4,7 @@
 */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Hero } from './components/Hero';
-import { InputArea } from './components/InputArea';
+import { InputArea, Framework } from './components/InputArea';
 import { LivePreview } from './components/LivePreview';
 import { CreationHistory, Creation } from './components/CreationHistory';
 import { FeedbackModal } from './components/FeedbackModal';
@@ -132,7 +132,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleGenerate = async (promptText: string, file?: File, fileData?: { base64: string, mimeType: string }) => {
+  const handleGenerate = async (promptText: string, file?: File, fileData?: { base64: string, mimeType: string }, framework: Framework = 'react') => {
     setIsGenerating(true);
     // Clear active creation to show loading state
     setActiveCreation(null);
@@ -151,7 +151,7 @@ const App: React.FC = () => {
           mimeType = file.type.toLowerCase();
       }
 
-      const result = await bringToLife(promptText, imageBase64, mimeType);
+      const result = await bringToLife(promptText, imageBase64, mimeType, framework);
       
       if (result && result.html) {
         const newCreation: Creation = {
