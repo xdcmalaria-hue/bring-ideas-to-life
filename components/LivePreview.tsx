@@ -20,21 +20,6 @@ declare global {
   }
 }
 
-const LoadingStep = ({ text, active, completed }: { text: string, active: boolean, completed: boolean }) => (
-    <div className={`flex items-center space-x-3 transition-all duration-500 ${active || completed ? 'opacity-100 translate-x-0' : 'opacity-30 translate-x-4'}`}>
-        <div className={`w-4 h-4 flex items-center justify-center ${completed ? 'text-green-400' : active ? 'text-blue-400' : 'text-zinc-700'}`}>
-            {completed ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-            ) : active ? (
-                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-            ) : (
-                <div className="w-1.5 h-1.5 bg-zinc-700 rounded-full"></div>
-            )}
-        </div>
-        <span className={`font-mono text-xs tracking-wide uppercase ${active ? 'text-zinc-200' : completed ? 'text-zinc-400 line-through' : 'text-zinc-600'}`}>{text}</span>
-    </div>
-);
-
 const PdfRenderer = ({ dataUrl }: { dataUrl: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
@@ -88,8 +73,8 @@ const PdfRenderer = ({ dataUrl }: { dataUrl: string }) => {
   if (error) {
     return (
         <div className="flex flex-col items-center justify-center h-full text-zinc-500 p-6 text-center">
-            <DocumentIcon className="w-12 h-12 mb-3 opacity-50 text-red-400" />
-            <p className="text-sm mb-2 text-red-400/80">{error}</p>
+            <DocumentIcon className="w-12 h-12 mb-3 opacity-50 text-red-500 dark:text-red-400" />
+            <p className="text-sm mb-2 text-red-600 dark:text-red-400/80">{error}</p>
         </div>
     );
   }
@@ -103,27 +88,48 @@ const PdfRenderer = ({ dataUrl }: { dataUrl: string }) => {
         )}
         <canvas 
             ref={canvasRef} 
-            className={`max-w-full max-h-full object-contain shadow-xl border border-zinc-800/50 rounded transition-opacity duration-500 ${loading ? 'opacity-0' : 'opacity-100'}`}
+            className={`max-w-full max-h-full object-contain shadow-xl border border-zinc-200 dark:border-zinc-800/50 rounded transition-opacity duration-500 ${loading ? 'opacity-0' : 'opacity-100'}`}
         />
     </div>
   );
 };
 
 export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, isFocused, onReset }) => {
-    const [loadingStep, setLoadingStep] = useState(0);
     const [showSplitView, setShowSplitView] = useState(false);
+    const [logs, setLogs] = useState<string[]>([]);
 
-    // Handle loading animation steps
+    // Log simulation effect
     useEffect(() => {
-        if (isLoading) {
-            setLoadingStep(0);
-            const interval = setInterval(() => {
-                setLoadingStep(prev => (prev < 3 ? prev + 1 : prev));
-            }, 2000); 
-            return () => clearInterval(interval);
-        } else {
-            setLoadingStep(0);
+        if (!isLoading) {
+            setLogs([]);
+            return;
         }
+
+        const fullLogs = [
+            "Initializing vision model...",
+            "Analyzing input parameters...",
+            "Detecting component structure...",
+            "Extracting design tokens...",
+            "Matching UI patterns...",
+            "Generating layout tree...",
+            "Synthesizing React components...",
+            "Optimizing Tailwind classes...",
+            "Running accessibility checks...",
+            "Finalizing build...",
+            "Rendering preview..."
+        ];
+        
+        setLogs([]);
+        let currentIndex = 0;
+        
+        const interval = setInterval(() => {
+            if (currentIndex < fullLogs.length) {
+                setLogs(prev => [...prev, fullLogs[currentIndex]].slice(-6)); // Show last 6
+                currentIndex++;
+            }
+        }, 800);
+
+        return () => clearInterval(interval);
     }, [isLoading]);
 
     // Default to Split View when a new creation with an image is loaded
@@ -153,7 +159,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
     <div
       className={`
         fixed z-40 flex flex-col
-        rounded-lg overflow-hidden border border-zinc-800 bg-[#0E0E10] shadow-2xl
+        rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#0E0E10] shadow-2xl
         transition-all duration-700 cubic-bezier(0.2, 0.8, 0.2, 1)
         ${isFocused
           ? 'inset-2 md:inset-4 opacity-100 scale-100'
@@ -162,19 +168,19 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
       `}
     >
       {/* Minimal Technical Header */}
-      <div className="bg-[#121214] px-4 py-3 flex items-center justify-between border-b border-zinc-800 shrink-0">
+      <div className="bg-white dark:bg-[#121214] px-4 py-3 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 shrink-0 transition-colors duration-300">
         {/* Left: Controls */}
         <div className="flex items-center space-x-3 w-32">
            <div className="flex space-x-2 group/controls">
                 <button 
                   onClick={onReset}
-                  className="w-3 h-3 rounded-full bg-zinc-700 group-hover/controls:bg-red-500 hover:!bg-red-600 transition-colors flex items-center justify-center focus:outline-none"
+                  className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700 group-hover/controls:bg-red-500 hover:!bg-red-600 transition-colors flex items-center justify-center focus:outline-none"
                   title="Close Preview"
                 >
                   <XMarkIcon className="w-2 h-2 text-black opacity-0 group-hover/controls:opacity-100" />
                 </button>
-                <div className="w-3 h-3 rounded-full bg-zinc-700 group-hover/controls:bg-yellow-500 transition-colors"></div>
-                <div className="w-3 h-3 rounded-full bg-zinc-700 group-hover/controls:bg-green-500 transition-colors"></div>
+                <div className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700 group-hover/controls:bg-yellow-500 transition-colors"></div>
+                <div className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700 group-hover/controls:bg-green-500 transition-colors"></div>
            </div>
         </div>
         
@@ -194,7 +200,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
                          <button 
                             onClick={() => setShowSplitView(!showSplitView)}
                             title={showSplitView ? "Show App Only" : "Compare with Original"}
-                            className={`p-1.5 rounded-md transition-all ${showSplitView ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'}`}
+                            className={`p-1.5 rounded-md transition-all ${showSplitView ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
                         >
                             <ViewColumnsIcon className="w-4 h-4" />
                         </button>
@@ -203,7 +209,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
                     <button 
                         onClick={handleExport}
                         title="Export Artifact (JSON)"
-                        className="text-zinc-500 hover:text-zinc-300 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+                        className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800"
                     >
                         <ArrowDownTrayIcon className="w-4 h-4" />
                     </button>
@@ -211,7 +217,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
                     <button 
                         onClick={onReset}
                         title="New Upload"
-                        className="ml-2 flex items-center space-x-1 text-xs font-bold bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-md transition-colors"
+                        className="ml-2 flex items-center space-x-1 text-xs font-bold bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-700 dark:hover:bg-zinc-200 px-3 py-1.5 rounded-md transition-colors"
                     >
                         <PlusIcon className="w-3 h-3" />
                         <span className="hidden sm:inline">New</span>
@@ -222,41 +228,68 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
       </div>
 
       {/* Main Content Area */}
-      <div className="relative w-full flex-1 bg-[#09090b] flex overflow-hidden">
+      <div className="relative w-full flex-1 bg-zinc-50 dark:bg-[#09090b] flex overflow-hidden transition-colors duration-300">
         {isLoading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 w-full">
-             {/* Technical Loading State */}
-             <div className="w-full max-w-md space-y-8">
-                <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 mb-6 text-blue-500 animate-spin-slow">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 w-full bg-zinc-50 dark:bg-[#09090b] relative overflow-hidden">
+             {/* Tech Background with scanning grid effect */}
+             <div className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05]" 
+                  style={{
+                      backgroundImage: 'linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)', 
+                      backgroundSize: '32px 32px',
+                      maskImage: 'radial-gradient(circle at center, black 40%, transparent 100%)'
+                  }}>
+             </div>
+
+             <div className="relative z-10 w-full max-w-md flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+                {/* Central Spinner */}
+                <div className="relative mb-10">
+                    <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-16 h-16 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
+                        <CodeBracketIcon className="w-8 h-8 text-blue-500 animate-pulse-fast" />
                     </div>
-                    <h3 className="text-zinc-100 font-mono text-lg tracking-tight">Constructing Environment</h3>
-                    <p className="text-zinc-500 text-sm mt-2">Interpreting visual data...</p>
+                    {/* Rotating Rings */}
+                    <div className="absolute -inset-4 border border-blue-500/30 rounded-full animate-spin-slow border-t-transparent border-l-transparent"></div>
+                    <div className="absolute -inset-4 border border-blue-500/10 rounded-full"></div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 animate-[loading_3s_ease-in-out_infinite] w-1/3"></div>
-                </div>
+                {/* Status Text */}
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mb-2">
+                    Generating Interface
+                </h3>
+                <p className="text-zinc-500 text-sm mb-8 text-center max-w-xs">
+                    Interpreting your input and writing production-ready React code...
+                </p>
 
-                 {/* Terminal Steps */}
-                 <div className="border border-zinc-800 bg-black/50 rounded-lg p-4 space-y-3 font-mono text-sm">
-                     <LoadingStep text="Analyzing visual inputs" active={loadingStep === 0} completed={loadingStep > 0} />
-                     <LoadingStep text="Identifying UI patterns" active={loadingStep === 1} completed={loadingStep > 1} />
-                     <LoadingStep text="Generating functional logic" active={loadingStep === 2} completed={loadingStep > 2} />
-                     <LoadingStep text="Compiling preview" active={loadingStep === 3} completed={loadingStep > 3} />
-                 </div>
+                {/* Terminal Window */}
+                <div className="w-full bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 shadow-2xl">
+                    <div className="px-4 py-2 bg-zinc-800/50 border-b border-zinc-800 flex items-center space-x-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+                        <div className="ml-auto text-[10px] text-zinc-500 font-mono">GEMINI-CORE</div>
+                    </div>
+                    <div className="p-4 font-mono text-xs h-40 overflow-hidden flex flex-col justify-end relative">
+                         <div className="absolute top-0 left-0 w-full h-full pointer-events-none bg-gradient-to-b from-transparent to-zinc-900/10"></div>
+                         {logs.map((log, i) => (
+                             <div key={i} className="mb-1 text-zinc-400 animate-in fade-in slide-in-from-left-2 duration-300 whitespace-nowrap overflow-hidden text-ellipsis">
+                                <span className="text-blue-500 font-bold mr-2">➜</span>
+                                {log}
+                             </div>
+                         ))}
+                         <div className="flex items-center text-blue-400 mt-1">
+                             <span className="mr-2">➜</span>
+                             <span className="animate-pulse">_</span>
+                         </div>
+                    </div>
+                </div>
              </div>
           </div>
         ) : creation?.html ? (
           <>
             {/* Split View: Left Panel (Original Image) */}
             {showSplitView && creation.originalImage && (
-                <div className="w-full md:w-1/2 h-1/2 md:h-full border-b md:border-b-0 md:border-r border-zinc-800 bg-[#0c0c0e] relative flex flex-col shrink-0">
-                    <div className="absolute top-4 left-4 z-10 bg-black/80 backdrop-blur text-zinc-400 text-[10px] font-mono uppercase px-2 py-1 rounded border border-zinc-800">
+                <div className="w-full md:w-1/2 h-1/2 md:h-full border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-[#0c0c0e] relative flex flex-col shrink-0 transition-colors duration-300">
+                    <div className="absolute top-4 left-4 z-10 bg-white/80 dark:bg-black/80 backdrop-blur text-zinc-600 dark:text-zinc-400 text-[10px] font-mono uppercase px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
                         Input Source
                     </div>
                     <div className="w-full h-full p-6 flex items-center justify-center overflow-hidden">
@@ -266,7 +299,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
                             <img 
                                 src={creation.originalImage} 
                                 alt="Original Input" 
-                                className="max-w-full max-h-full object-contain shadow-xl border border-zinc-800/50 rounded"
+                                className="max-w-full max-h-full object-contain shadow-xl border border-zinc-200 dark:border-zinc-800/50 rounded"
                             />
                         )}
                     </div>

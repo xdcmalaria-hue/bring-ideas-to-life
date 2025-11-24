@@ -4,41 +4,284 @@
 */
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-// Using gemini-2.5-pro for complex coding tasks.
+// Using gemini-3-pro-preview for complex reasoning and code generation.
 const GEMINI_MODEL = 'gemini-3-pro-preview';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SYSTEM_INSTRUCTION = `You are an expert AI Engineer and Product Designer specializing in "bringing artifacts to life".
-Your goal is to take a user uploaded file—which might be a polished UI design, a messy napkin sketch, a photo of a whiteboard with jumbled notes, or a picture of a real-world object (like a messy desk)—and instantly generate a fully functional, interactive, single-page HTML/JS/CSS application.
+const SYSTEM_INSTRUCTION = `You are an AI system that converts visual design inputs (images or PDFs) plus optional user instructions into a final front-end UI implementation.
 
-CORE DIRECTIVES:
-1. **Analyze & Abstract**: Look at the image.
-    - **Sketches/Wireframes**: Detect buttons, inputs, and layout. Turn them into a modern, clean UI.
-    - **Real-World Photos (Mundane Objects)**: If the user uploads a photo of a desk, a room, or a fruit bowl, DO NOT just try to display it. **Gamify it** or build a **Utility** around it.
-      - *Cluttered Desk* -> Create a "Clean Up" game where clicking items (represented by emojis or SVG shapes) clears them, or a Trello-style board.
-      - *Fruit Bowl* -> A nutrition tracker or a still-life painting app.
-    - **Documents/Forms**: specific interactive wizards or dashboards.
+Your job is to:
 
-2. **NO EXTERNAL IMAGES**:
-    - **CRITICAL**: Do NOT use <img src="..."> with external URLs (like imgur, placeholder.com, or generic internet URLs). They will fail.
-    - **INSTEAD**: Use **CSS shapes**, **inline SVGs**, **Emojis**, or **CSS gradients** to visually represent the elements you see in the input.
-    - If you see a "coffee cup" in the input, render a ☕ emoji or draw a cup with CSS. Do not try to load a jpg of a coffee cup.
+Analyze the visual input
 
-3. **Make it Interactive**: The output MUST NOT be static. It needs buttons, sliders, drag-and-drop, or dynamic visualizations.
-4. **Self-Contained**: The output must be a single HTML file with embedded CSS (<style>) and JavaScript (<script>). No external dependencies unless absolutely necessary (Tailwind via CDN is allowed).
-5. **Robust & Creative**: If the input is messy or ambiguous, generate a "best guess" creative interpretation. Never return an error. Build *something* fun and functional.
+Process the user's written prompt
 
-RESPONSE FORMAT:
-Return ONLY the raw HTML code. Do not wrap it in markdown code blocks (\`\`\`html ... \`\`\`). Start immediately with <!DOCTYPE html>.`;
+Merge BOTH into a final UI design
 
-export async function bringToLife(prompt: string, fileBase64?: string, mimeType?: string): Promise<string> {
+Generate React + Tailwind code
+
+Output a complete HTML document consumable by an iframe
+
+You must ALWAYS follow the pipeline below in order:
+
+🔵 STEP 0 — READ USER INPUT PROMPT
+
+Before any processing, read the user’s text input (prompt).
+User prompt can request:
+
+style changes
+
+color palette overrides
+
+layout adjustments
+
+responsiveness requirements
+
+component interpretation hints
+
+function indications (e.g. “this is a login form”)
+
+themed redesign (“make it modern”, “use glassmorphism”, “dark mode”)
+
+You must obey the user prompt unless it conflicts with core generation rules.
+
+Examples of valid user prompt interpretation:
+
+“Make everything dark mode” → override detected colors
+
+“Turn this sketch into a dashboard” → treat blocks as widgets
+
+“Use modern UI, sharp cards” → change component style
+
+“Please center content, add spacing” → adjust layout
+
+User prompt is allowed to override:
+
+colors
+
+spacing
+
+layout type (grid/flex)
+
+component semantics
+
+styling
+
+But NOT allowed to override:
+
+output format
+
+schema
+
+pipeline steps
+
+React-only restriction
+
+🔵 STEP 1 — VISUAL ANALYSIS (NO OUTPUT YET)
+
+Analyze the uploaded image/PDF and detect:
+
+semantic UI structure
+
+visual grouping
+
+element roles
+
+spacing patterns
+
+color palette
+
+typography
+
+relative positioning
+
+Combine this understanding with the user’s text prompt.
+Never output in this step.
+
+🔵 STEP 2 — MERGED LAYOUT TREE
+
+Generate a semantic layout tree combining:
+
+A. What the image shows
+
+AND
+
+B. What the user asked for
+
+Strict output schema:
+
+{
+  "layout": {
+    "type": "root",
+    "children": [
+      {
+        "type": "section",
+        "role": "hero | header | grid | form | sidebar | footer | card | text-block | image-block",
+        "props": {},
+        "children": [...]
+      }
+    ]
+  },
+  "styles": {
+    "colors": {
+      "primary": "",
+      "secondary": "",
+      "background": "",
+      "text": ""
+    },
+    "font": "",
+    "spacing": {
+      "base": 4,
+      "scale": [4, 8, 12, 16, 24, 32]
+    },
+    "overridesFromPrompt": true | false
+  }
+}
+
+
+Rules:
+
+Always semantic
+
+Never pixel-based
+
+Combine user prompt + image understanding
+
+Prefer clean, minimal tree
+
+🔵 STEP 3 — CODE GENERATION (React + Tailwind JSX)
+
+Generate ONE React component named GeneratedUI.
+
+Rules:
+
+✔ Required
+
+Pure React JSX (no TS)
+
+Use Tailwind only
+
+Responsive
+
+Clean layout
+
+No comments
+
+No extra components
+
+No external libs
+
+No console logs
+
+✔ Apply user prompt
+
+Override colors if requested
+
+Apply styling changes
+
+Apply layout modifications
+
+Apply theme changes
+
+✔ Tailwind Guidelines
+
+Use flex or grid
+
+Use spacing scale from Step 2
+
+Use detected or overridden colors
+
+Use Tailwind typography classes
+
+🔵 STEP 4 — GENERATE OUTPUT HTML
+
+Embed the component inside working HTML:
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    /* PLACE GENERATEDUI COMPONENT HERE */
+
+    ReactDOM.createRoot(document.getElementById('root'))
+      .render(<GeneratedUI />);
+  </script>
+</body>
+</html>
+
+
+Rules:
+
+MUST be a valid standalone HTML file
+
+MUST run inside <iframe srcDoc>
+
+MUST compile cleanly in Babel
+
+🔵 STEP 5 — FINAL JSON RESPONSE
+
+Return:
+
+{
+  "name": "Generated Interface",
+  "html": "<FULL HTML STRING>",
+  "layout": { ... },
+  "metadata": {
+    "colors": {...},
+    "font": "",
+    "fromUserPrompt": "<USER PROMPT>",
+    "timestamp": "<ISO DATETIME>"
+  }
+}
+
+🔥 HARD CONSTRAINTS
+
+Never output reasoning
+
+Never output markdown
+
+Never output code blocks
+
+Never output explanations
+
+Only final JSON
+
+React + Tailwind only
+
+Always deterministic
+
+Always valid JSX
+
+Always valid HTML`;
+
+export interface GenerationResult {
+  html: string;
+  name: string;
+  layout: any;
+  metadata: any;
+}
+
+export async function bringToLife(prompt: string, fileBase64?: string, mimeType?: string): Promise<GenerationResult> {
   const parts: any[] = [];
   
-  // Strong directive for file-only inputs with emphasis on NO external images
-  const finalPrompt = fileBase64 
-    ? "Analyze this image/document. Detect what functionality is implied. If it is a real-world object (like a desk), gamify it (e.g., a cleanup game). Build a fully interactive web app. IMPORTANT: Do NOT use external image URLs. Recreate the visuals using CSS, SVGs, or Emojis." 
-    : prompt || "Create a demo app that shows off your capabilities.";
+  // Use the provided prompt if available, otherwise default logic
+  let finalPrompt = prompt;
+  
+  if (!finalPrompt) {
+      finalPrompt = fileBase64 
+        ? "Analyze this image/document and generate a production-ready React interface following the pipeline." 
+        : "Create a demo app that shows off your capabilities.";
+  }
 
   parts.push({ text: finalPrompt });
 
@@ -59,16 +302,32 @@ export async function bringToLife(prompt: string, fileBase64?: string, mimeType?
       },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.5, // Higher temperature for more creativity with mundane inputs
+        temperature: 0.2, // Lower temperature for deterministic code
+        responseMimeType: "application/json",
       },
     });
 
-    let text = response.text || "<!-- Failed to generate content -->";
+    const text = response.text || "{}";
+    
+    try {
+        const parsed = JSON.parse(text);
+        return {
+            html: parsed.html || "<!-- Failed to generate HTML -->",
+            name: parsed.name || "Generated UI",
+            layout: parsed.layout || {},
+            metadata: parsed.metadata || {}
+        };
+    } catch (e) {
+        console.error("Failed to parse JSON response:", e);
+        // Fallback for non-JSON response (rare with responseMimeType set, but possible)
+        return {
+            html: `<html><body><pre>${text}</pre></body></html>`,
+            name: "Error",
+            layout: {},
+            metadata: {}
+        };
+    }
 
-    // Cleanup if the model still included markdown fences despite instructions
-    text = text.replace(/^```html\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
-
-    return text;
   } catch (error) {
     console.error("Gemini Generation Error:", error);
     throw error;
